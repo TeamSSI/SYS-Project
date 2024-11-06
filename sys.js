@@ -59,3 +59,70 @@ const fetchData = (endpoint, elementId) => {
         })
         .catch(error => console.error('Erreur:', error));
 };
+
+
+const buttonHolder = document.getElementById('button_holder');
+const b_distance = document.getElementById('b-distance');
+const form = document.getElementById('inp_form');
+const button_ret = document.getElementById('ret');
+const lancer = document.getElementById('Lancer');
+
+form.style.display = "none";
+
+// Afficher le formulaire lorsque le bouton b_distance est cliqué
+b_distance.addEventListener('click', () => {
+    buttonHolder.style.display = 'none';
+    form.style.display = "block";
+});
+
+document.getElementById("Lancer").addEventListener("click", function(event) {
+    event.preventDefault();
+    
+    const ip = document.getElementById("ip").value;
+    const port = document.getElementById("port").value;
+
+    fetch("/start_server", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ ip: ip, port: port })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            alert("Erreur : " + data.error);
+        } else {
+            displaySystemInfo(data.system_info);
+        }
+    })
+    .catch(error => {
+        console.error("Erreur lors de la requête :", error);
+    });
+});
+
+function displaySystemInfo(info) {
+    const systemInfoList = document.getElementById("system-info");
+    systemInfoList.innerHTML = ""; // Clear previous data if any
+
+    for (const key in info) {
+        const item = document.createElement("li");
+        
+        if (typeof info[key] === "object") {
+            item.innerHTML = `<strong>${key}:</strong>`;
+            const sublist = document.createElement("ul");
+            for (const subKey in info[key]) {
+                const subItem = document.createElement("li");
+                subItem.textContent = `${subKey}: ${info[key][subKey]}`;
+                sublist.appendChild(subItem);
+            }
+            item.appendChild(sublist);
+        } else {
+            item.innerHTML = `<strong>${key}:</strong> ${info[key]}`;
+        }
+        
+        systemInfoList.appendChild(item);
+    }
+}
+
+

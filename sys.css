@@ -159,3 +159,8 @@ p{
     margin: 5px 0; /* Espacement entre les éléments de la liste */
     font-family: monospace; /* Police pour un aspect technique */
 }
+
+
+#port,#IP{
+    color: white;
+}
