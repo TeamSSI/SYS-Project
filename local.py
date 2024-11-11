@@ -1,104 +1,142 @@
 #!/usr/bin/python3
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 import platform
 import psutil
 import os
 import subprocess
-
+import socket
+import json
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "http://127.0.0.1:5500"}})
 
 # Fonction pour obtenir les informations système
-def get_system_info():
+def obtenir_infos_systeme():
     return {
-        "system": platform.system(),
+        "système": platform.system(),
         "version": platform.version(),
         "release": platform.release(),
-        "processor": platform.processor(),
+        "processeur": platform.processor(),
         "architecture": platform.architecture()[0]
     }
 
 # Fonction pour obtenir les informations de la mémoire
-def get_memory_info():
-    memory = psutil.virtual_memory()
-    disk = psutil.disk_usage('/')
+def obtenir_infos_memoire():
+    memoire = psutil.virtual_memory()
+    disque = psutil.disk_usage('/')
     return {
-        "total_memory_RAM (bytes)": memory.total,
-        "available_memory_RAM (bytes)": memory.available,
-        "used_memory_RAM (bytes)": memory.used,
-        "memory_percentage_RAM (%)": memory.percent,
-        "total_disk (bytes)": disk.total,
-        "used_disk (bytes)": disk.used,
-        "free_disk (bytes)": disk.free,
-        "disk_percentage (%)": disk.percent
+        "mémoire_totale_RAM (octets)": memoire.total,
+        "mémoire_disponible_RAM (octets)": memoire.available,
+        "mémoire_utilisée_RAM (octets)": memoire.used,
+        "pourcentage_mémoire_RAM (%)": memoire.percent,
+        "disque_total (octets)": disque.total,
+        "disque_utilisé (octets)": disque.used,
+        "espace_libre_disque (octets)": disque.free,
+        "pourcentage_disque (%)": disque.percent
     }
 
 # Fonction pour obtenir les informations de la batterie
-def get_battery_info():
+def obtenir_infos_batterie():
     try:
-        battery = psutil.sensors_battery()
-        if battery:
+        batterie = psutil.sensors_battery()
+        if batterie:
             return {
-                "battery_level (%)": battery.percent,
-                "plugged_in": battery.power_plugged,
-                "time_left (minutes)": battery.secsleft // 60 if battery.secsleft != psutil.POWER_TIME_UNLIMITED else "Inconnu"
+                "niveau_batterie (%)": batterie.percent,
+                "branché": batterie.power_plugged,
+                "temps_restant (minutes)": batterie.secsleft // 60 if batterie.secsleft != psutil.POWER_TIME_UNLIMITED else "Inconnu"
             }
         else:
-            return {"error": "Aucune information sur la batterie disponible"}
+            return {"erreur": "Aucune information sur la batterie disponible"}
     except Exception as e:
-        return {"error": str(e)}
+        return {"erreur": str(e)}
 
 # Fonction pour obtenir les informations sur les périphériques
-def get_peripheral_info():
+def obtenir_infos_peripheriques():
     try:
         if os.name == 'posix':
-            peripherals = subprocess.check_output('lsusb', shell=True).decode()
+            peripheriques = subprocess.check_output('lsusb', shell=True).decode()
         elif os.name == 'nt':
-            peripherals = subprocess.check_output('wmic path Win32_USBControllerDevice get Dependent', shell=True).decode()
+            peripheriques = subprocess.check_output('wmic path Win32_USBControllerDevice get Dependent', shell=True).decode()
         else:
-            peripherals = "OS non supporté pour cette fonctionnalité"
-        return {"peripherals": peripherals}
+            peripheriques = "OS non supporté pour cette fonctionnalité"
+        return {"périphériques": peripheriques}
     except Exception as e:
-        return {"error": str(e)}
+        return {"erreur": str(e)}
 
 # Fonction pour obtenir les informations CPU
-def get_cpu_info():
+def obtenir_infos_cpu():
     return {
-        "cpu_name": platform.processor(),
-        "physical_cores": psutil.cpu_count(logical=False),
-        "logical_cores": psutil.cpu_count(logical=True),
-        "cpu_usage (%)": psutil.cpu_percent(interval=1)
+        "nom_cpu": platform.processor(),
+        "coeurs_physiques": psutil.cpu_count(logical=False),
+        "coeurs_logiques": psutil.cpu_count(logical=True),
+        "utilisation_cpu (%)": psutil.cpu_percent(interval=1)
     }
 
 # Routes de l'API
-
-## test
 @app.route('/')
 def principale():
     return "<p>azzedin za3Im</p>"
 
-@app.route('/system_info', methods=['GET'])
-def system_info():
-    return jsonify(get_system_info())
+@app.route('/infos_systeme', methods=['GET'])
+def infos_systeme():
+    return jsonify(obtenir_infos_systeme())
 
-@app.route('/memory_info', methods=['GET'])
-def memory_info():
-    return jsonify(get_memory_info())
+@app.route('/infos_memoire', methods=['GET'])
+def infos_memoire():
+    return jsonify(obtenir_infos_memoire())
 
-@app.route('/battery_info', methods=['GET'])
-def battery_info():
-    return jsonify(get_battery_info())
+@app.route('/infos_batterie', methods=['GET'])
+def infos_batterie():
+    return jsonify(obtenir_infos_batterie())
 
-@app.route('/peripheral_info', methods=['GET'])
-def peripheral_info():
-    return jsonify(get_peripheral_info())
+@app.route('/infos_peripheriques', methods=['GET'])
+def infos_peripheriques():
+    return jsonify(obtenir_infos_peripheriques())
 
-@app.route('/cpu_info', methods=['GET'])
-def cpu_info():
-    return jsonify(get_cpu_info())
+@app.route('/infos_cpu', methods=['GET'])
+def infos_cpu():
+    return jsonify(obtenir_infos_cpu())
 
-if __name__ == '__main__':
+@app.route('/demarrer_serveur', methods=['POST'])
+def demarrer_serveur():
+
+    adresse_ip = request.json.get('ip')
+    port = request.json.get('port')
+    
+    if not adresse_ip or not port:
+        return jsonify({'erreur': 'IP et port requis'}), 400
+
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.bind((adresse_ip, int(port)))
+        s.listen(5)
+        print("En attente de connexion...")
+
+        cible, ip = s.accept()
+        print(f"Connecté à {ip}")
+
+        donnees = recevoir(cible)
+        s.close()
+
+        return jsonify({'infos_systeme': donnees}), 200
+    except Exception as e:
+        return jsonify({'erreur': str(e)}), 500
+
+def recevoir(cible):
+    json_data = ""
+    while True:
+        try:
+            morceau = cible.recv(4096).decode()
+            if not morceau:
+                break
+            json_data += morceau
+            return json.loads(json_data)
+        except json.JSONDecodeError:
+            continue
+    return {}
+
+# Exécution principale du script
+if __name__ == "__main__":
     app.run(debug=True)

@@ -15,11 +15,11 @@ document.addEventListener('DOMContentLoaded', () => {
         button_ret.style.backgroundColor='red';
         button_ret.style.color='white';
         // Charger les informations système après le clic sur le bouton
-        fetchData('system_info', 'system-info');
-        fetchData('memory_info', 'memory-info');
-        fetchData('cpu_info', 'cpu-info');
-        fetchData('peripheral_info', 'peripheral-info');
-        fetchData('battery_info', 'battery-info');
+        fetchData('infos_systeme', 'system-info');
+        fetchData('infos_memoire', 'memory-info');
+        fetchData('infos_cpu', 'cpu-info');
+        fetchData('infos_peripheriques', 'peripheral-info');
+        fetchData('infos_batterie', 'battery-info');
     });
 
     button_ret.addEventListener('click', ()=>{
@@ -34,6 +34,7 @@ const fetchData = (endpoint, elementId) => {
     fetch(`http://127.0.0.1:5000/${endpoint}`)
         .then(response => response.json())
         .then(data => {
+            console.log(data);
             const element = document.getElementById(elementId);
             element.innerHTML = ""; // Vider le contenu précédent
 
@@ -81,7 +82,12 @@ document.getElementById("Lancer").addEventListener("click", function(event) {
     const ip = document.getElementById("ip").value;
     const port = document.getElementById("port").value;
 
-    fetch("/start_server", {
+
+
+    console.log(ip)
+    console.log(port)
+
+    fetch("http://127.0.0.1:5000/demarrer_serveur", {
         method: "POST",
         headers: {
             "Content-Type": "application/json"
@@ -91,9 +97,10 @@ document.getElementById("Lancer").addEventListener("click", function(event) {
     .then(response => response.json())
     .then(data => {
         if (data.error) {
-            alert("Erreur : " + data.error);
+            alert("Erreur :" + data.error);
         } else {
-            displaySystemInfo(data.system_info);
+            console.log(data)
+            displaySystemInfo(data.infos_systeme);
         }
     })
     .catch(error => {
@@ -102,17 +109,20 @@ document.getElementById("Lancer").addEventListener("click", function(event) {
 });
 
 function displaySystemInfo(info) {
-    const systemInfoList = document.getElementById("system-info");
+    const systemInfoList = document.getElementById("system-info2");
     systemInfoList.innerHTML = ""; // Clear previous data if any
 
     for (const key in info) {
         const item = document.createElement("li");
-        
+        item.className = "info-item"; // Adding a CSS class
+
         if (typeof info[key] === "object") {
             item.innerHTML = `<strong>${key}:</strong>`;
             const sublist = document.createElement("ul");
+            sublist.className = "sublist"; // CSS class for nested lists
             for (const subKey in info[key]) {
                 const subItem = document.createElement("li");
+                subItem.className = "sublist-item"; // CSS class for sub-items
                 subItem.textContent = `${subKey}: ${info[key][subKey]}`;
                 sublist.appendChild(subItem);
             }
@@ -120,9 +130,11 @@ function displaySystemInfo(info) {
         } else {
             item.innerHTML = `<strong>${key}:</strong> ${info[key]}`;
         }
-        
+
         systemInfoList.appendChild(item);
     }
 }
+
+
 
 
